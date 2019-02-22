@@ -3,7 +3,7 @@ name = "hlvm_runtime"
 version = "0.1.1"
 authors = ["adam"]
 edition = "2018"
-license = "LICENSE"
+license = "MIT"
 description = "The Runtime for the HLVM Library"
 
 [dependencies]
