@@ -230,7 +230,7 @@ impl StackFrame {
     }
 
     fn while_function(&mut self, object_and_scope: Pair<Value, Scope>) {
-
+        //not implemented yet
     }
 
     // this function calls the topmost object on the stack as function
