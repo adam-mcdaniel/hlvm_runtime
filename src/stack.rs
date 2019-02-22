@@ -23,14 +23,6 @@ impl Scope {
         }
     }
 
-    // does this scope have a parent scope?
-    fn is_bottom_scope(&self) -> bool {
-        match self.outer_scope {
-            Some(_) => true,
-            None => false
-        }
-    }
-
     // define the value of the variable in this scope
     fn define(&mut self, name: String, object: Pair<Value, Scope>) {
         self.table.set(name, object)
@@ -229,7 +221,7 @@ impl StackFrame {
         }
     }
 
-    fn while_function(&mut self, object_and_scope: Pair<Value, Scope>) {
+    fn while_function(&mut self, _object_and_scope: Pair<Value, Scope>) {
         //not implemented yet
     }
 

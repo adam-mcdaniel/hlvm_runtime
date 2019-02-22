@@ -1,4 +1,5 @@
 use std::fmt::{Display};
+#[allow(unused_imports)]
 use std::str::FromStr;
 use std::ops::{Add, Sub, Mul, Div, Rem};
 

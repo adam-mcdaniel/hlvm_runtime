@@ -285,7 +285,6 @@ pub trait Object: Sized + Clone + Debug + Display + Add + Sub + Mul + Div + Rem 
             Type::Nothing => format!("None"),
             Type::Problem(p) => format!("{:?}", p),
             Type::Command(c) => format!("{:?}", c),
-            _ => "".to_string()
         }
     }
 
