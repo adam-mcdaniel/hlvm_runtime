@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
-use std::ops::{Add, Sub, Mul, Div, Rem};
+use std::ops::{Add, Sub, Mul, Div, Rem, Not};
 
 use bigdecimal::*;
 use crate::table::Table;
@@ -41,9 +41,14 @@ pub enum Instruction {
     Print,
     Println,
     While,
+    If,
     Append,
     Pop,
     Index,
+    Equal,
+    Greater,
+    Less,
+    Not,
     Add,
     Mul,
     Sub,
@@ -78,7 +83,7 @@ pub enum Type {
 }
 
 
-pub trait Object: Sized + Clone + Debug + Display + Add + Sub + Mul + Div + Rem {
+pub trait Object: Sized + Clone + Debug + Display + Add + Sub + Mul + Div + Rem + Not {
     // initializers
     fn new(value_type: Type, contents: Contents) -> Self;
 

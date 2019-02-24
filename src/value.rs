@@ -1,10 +1,11 @@
 use std::fmt::{Display};
 #[allow(unused_imports)]
 use std::str::FromStr;
-use std::ops::{Add, Sub, Mul, Div, Rem};
+use std::ops::{Add, Sub, Mul, Div, Rem, Not};
 
 use crate::table::*;
 use crate::object::*;
+use crate::literals::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Value {
@@ -97,6 +98,23 @@ impl Rem for Value {
         return Value::from_number(self.as_number() % rhs.as_number())
     }
 }
+
+impl Not for Value {
+    type Output = Value;
+    fn not(self) -> Self::Output {
+        match self.value_type {
+            Type::Num => {
+                if self == num("0") {
+                    return num("1");
+                } else {
+                    return num("0");
+                }
+            },
+            _ => num("0")
+        }
+    }
+}
+
 
 
 impl Object for Value {

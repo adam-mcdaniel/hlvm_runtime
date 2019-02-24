@@ -1,14 +1,15 @@
 use crate::object::*;
 use crate::value::*;
+use crate::literals::*;
 use crate::table::Table;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Pair<A, B> {
     first: A,
     second: B
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Scope {
     table: Table<Pair<Value, Scope>>, // the variables in scope
     outer_scope: Option<Box<Scope>>   // the pointer to the parent scope
@@ -36,10 +37,10 @@ impl Scope {
                 // the value isnt in this scope
                 // try to use the parent scope if possible, 
                 // otherwise just return an empty value and scope
-                (*match self.outer_scope.clone() {
-                    Some(v) => v,
-                    None => return Pair{first: Value::from_nothing(), second: Scope::new(None)}
-                }).get(name)
+                match &mut self.outer_scope {
+                    Some(v) => (*v).get(name),
+                    None => Pair{first: Value::from_nothing(), second: Scope::new(None)}
+                }
             }
         }
     }
@@ -79,6 +80,9 @@ impl StackFrame {
 
     // run a stackframe
     pub fn run(&mut self) {
+        // println!("stack {:?}", match self.outer_stack.clone().contents{
+        //     Some
+        // });
         for instruction in self.instructions.as_list() {
             match instruction.as_instruction() {
                 // print the topmost object without a carriage return
@@ -90,11 +94,22 @@ impl StackFrame {
                 // a function (as if it were in this scope)
                 // until it returns 0
                 Instruction::While => {
-                    let f = self.pop();
-                    self.while_function(f);
+                    let condition = self.pop_value();
+                    let body = self.pop_value();
+                    self.while_function(condition, body);
                 },
 
-                // add the topmost objects
+                Instruction::If => {
+                    let c = self.pop_value();
+                    let a = self.pop();
+                    let b = self.pop();
+                    if c != num("0") && c != none() {
+                        self.push(a);
+                    } else {
+                        self.push(b);
+                    }
+                },
+
                 Instruction::Append => {
                     let mut list = self.pop_value();
                     let value = self.pop_value();
@@ -102,20 +117,57 @@ impl StackFrame {
                     self.push_value(list);
                 },
 
-                // multiply the topmost objects
                 Instruction::Pop => {
                     let mut list = self.pop_value();
                     let value = list.list_pop();
                     self.push_value(value);
                 },
                 
-                // subtract the topmost objects
                 Instruction::Index => {
                     let mut list = self.pop_value();
                     let index = self.pop_value();
                     self.push_value(list.index(index));
                 },
+
+                // == the topmost objects
+                Instruction::Equal => {
+                    let a = self.pop_value();
+                    let b = self.pop_value();
+                    if a == b {
+                        self.push_value(num("1"));
+                    } else {
+                        self.push_value(num("0"));
+                    }
+                },
+
+                // > the topmost objects
+                Instruction::Greater => {
+                    let a = self.pop_value();
+                    let b = self.pop_value();
+                    if a.as_number() > b.as_number() {
+                        self.push_value(num("1"));
+                    } else {
+                        self.push_value(num("0"));
+                    }
+                },
                 
+                // < the topmost objects
+                Instruction::Less => {
+                    let a = self.pop_value();
+                    let b = self.pop_value();
+                    if a.as_number() < b.as_number() {
+                        self.push_value(num("1"));
+                    } else {
+                        self.push_value(num("0"));
+                    }
+                },
+                
+
+                // not the topmost object
+                Instruction::Not => {
+                    let a = self.pop_value();
+                    self.push_value(!a);
+                },
 
                 // add the topmost objects
                 Instruction::Add => {
@@ -221,8 +273,50 @@ impl StackFrame {
         }
     }
 
-    fn while_function(&mut self, _object_and_scope: Pair<Value, Scope>) {
-        //not implemented yet
+    fn while_function(&mut self, condition: Value, body: Value) {
+        // create a new stackframe
+
+        let mut exec = StackFrame::new(
+            Some(Box::new(self.clone())),
+            self.scope.clone(),
+            body.clone()
+        );
+
+        let mut test = StackFrame::new(
+            Some(Box::new(self.clone())),
+            self.scope.clone(),
+            condition.clone()
+        );
+
+        let mut result : Value;
+
+        loop {
+            test.run();
+            result = test.pop_value();
+            if result == num("0") || result == none() {
+                break;
+            }
+
+            exec = StackFrame::new(
+                Some(Box::new(self.clone())),
+                test.scope.clone(),
+                body.clone()
+            );
+
+            exec.run();
+            test = StackFrame::new(
+                Some(Box::new(self.clone())),
+                exec.scope.clone(),
+                condition.clone()
+            );
+        }
+
+        self.scope = exec.scope.clone();
+        self.contents = exec.contents.clone();
+        self.outer_stack = exec.outer_stack.clone();
+        self.instructions = exec.instructions.clone();
+        self.number_of_args_taken = exec.number_of_args_taken.clone();
+
     }
 
     // this function calls the topmost object on the stack as function
@@ -251,21 +345,37 @@ impl StackFrame {
 
     // retrieve the value with a given variable name
     fn load(&mut self, name: String) -> Pair<Value, Scope> {
-        self.scope.get(name)
+        let result = self.scope.get(name.clone());
+        let empty = Pair{first: Value::from_nothing(), second: Scope::new(None)};
+        if result.first == empty.first && result.second == empty.second {
+            return match &mut self.outer_stack {
+                Some(s) => {
+                    return s.load(name.clone());
+                },
+                None => result
+            }
+        } else {
+            return result;
+        }
     }
 
     // store a value under the given variable name
     fn store(&mut self, name: String, object: Pair<Value, Scope>) {
-        self.scope.define(name, object)
+        match object.first.get_type() {
+            Type::Function => self.scope.define(name, object),
+            _ => self.scope.define(name, Pair{first: object.first, second: Scope::new(None)}),
+        }
     }
 
     // push an object with its saved scope onto the stack
     fn push(&mut self, object_and_scope: Pair<Value, Scope>) {
+        self.number_of_args_taken += 1;
         self.contents.push(object_and_scope);
     }
 
     // push an object without a scope onto the stack (used for literals)
     fn push_value(&mut self, object: Value) {
+        self.number_of_args_taken += 1;
         self.contents.push(Pair {
             first: object,
             second: self.scope.clone()
@@ -305,9 +415,13 @@ impl StackFrame {
                 None => return Value::from_nothing()
             }
         } else {
-            let back: Pair<Value, Scope> = self.contents.last().unwrap().clone();
+            let back: Value = match self.contents.last() {
+                Some(v) => v.first.clone(),
+                None => Value::from_nothing()
+            };
+            
             self.contents.pop();
-            back.clone().first
+            back.clone()
         }
     }
 }
