@@ -70,3 +70,17 @@ pub fn fun(arr: &[Value]) -> Value {
 pub fn ins(i: Instruction) -> Value {
     Value::from_instruction(i)
 }
+
+
+// #[allow(unused_macros)]
+// #[macro_export] macro_rules! wrap_foreign_function {
+//     ($function:expr) => (
+//         Value::from_foreign_function(
+//             |input: Value| {$function(input)}
+//         )
+//     )
+// }
+
+pub fn foreign_function(fun: fn(Value) -> Value) -> Value {
+    Value::from_foreign_function(fun)
+}

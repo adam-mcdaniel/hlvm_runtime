@@ -350,10 +350,14 @@ impl StackFrame {
         if result.first == empty.first && result.second == empty.second {
             return match &mut self.outer_stack {
                 Some(s) => {
-                    return s.load(name.clone());
+                    s.load(name.clone())
                 },
-                None => result
-            }
+                None => {
+                    let v = self.pop();
+                    self.store(name.clone(), v);
+                    self.load(name.clone())
+                }
+            };
         } else {
             return result;
         }
