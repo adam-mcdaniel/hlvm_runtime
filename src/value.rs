@@ -57,6 +57,9 @@ impl Sub for Value {
 impl Mul for Value {
     type Output = Value;
     fn mul(self, rhs: Self) -> Self::Output {
+        // self.println();
+        // rhs.println();
+        
         if self.value_type != rhs.value_type {
             return Value::from_problem(Problem::IncompatibleTypes);
         }

@@ -31,7 +31,7 @@ impl Scope {
 
     // get the value of the variable in this scope
     fn get(&mut self, name: String) -> Pair<Value, Scope> {
-        match self.table.get(name.clone()) {
+        let value_scope = match self.table.get(name.clone()) {
             Some(v) => return v,
             None => {
                 // the value isnt in this scope
@@ -42,6 +42,11 @@ impl Scope {
                     None => Pair{first: Value::from_nothing(), second: Scope::new(None)}
                 }
             }
+        };
+
+        match value_scope.first.get_type() {
+            Type::Function => value_scope,
+            _ => Pair{first: value_scope.first, second: Scope::new(None)}
         }
     }
 }
@@ -84,179 +89,183 @@ impl StackFrame {
         //     Some
         // });
         for instruction in self.instructions.as_list() {
-            match instruction.as_instruction() {
-                // print the topmost object without a carriage return
-                Instruction::Print => self.pop_value().print(),
-                // print the topmost object with a carriage return
-                Instruction::Println => self.pop_value().println(),
+            self.step(instruction)
+        }
+    }
 
-                // call the topmost object on the stack as
-                // a function (as if it were in this scope)
-                // until it returns 0
-                Instruction::While => {
-                    let condition = self.pop_value();
-                    let body = self.pop_value();
-                    self.while_function(condition, body);
-                },
+    fn step(&mut self, instruction: Value) {
+        match instruction.as_instruction() {
+            // print the topmost object without a carriage return
+            Instruction::Print => self.pop_value().print(),
+            // print the topmost object with a carriage return
+            Instruction::Println => self.pop_value().println(),
 
-                Instruction::If => {
-                    let c = self.pop_value();
-                    let a = self.pop();
-                    let b = self.pop();
-                    if c != num("0") && c != none() {
-                        self.push(a);
-                    } else {
-                        self.push(b);
-                    }
-                },
+            // call the topmost object on the stack as
+            // a function (as if it were in this scope)
+            // until it returns 0
+            Instruction::While => {
+                let condition = self.pop_value();
+                let body = self.pop_value();
+                self.while_function(condition, body);
+            },
 
-                Instruction::Append => {
-                    let mut list = self.pop_value();
-                    let value = self.pop_value();
-                    list.list_push(value);
-                    self.push_value(list);
-                },
+            Instruction::If => {
+                let c = self.pop_value();
+                let a = self.pop();
+                let b = self.pop();
+                if c != num("0") && c != none() {
+                    self.push(a);
+                } else {
+                    self.push(b);
+                }
+            },
 
-                Instruction::Pop => {
-                    let mut list = self.pop_value();
-                    let value = list.list_pop();
-                    self.push_value(value);
-                },
-                
-                Instruction::Index => {
-                    let mut list = self.pop_value();
-                    let index = self.pop_value();
-                    self.push_value(list.index(index));
-                },
+            Instruction::Append => {
+                let mut list = self.pop_value();
+                let value = self.pop_value();
+                list.list_push(value);
+                self.push_value(list);
+            },
 
-                // == the topmost objects
-                Instruction::Equal => {
-                    let a = self.pop_value();
-                    let b = self.pop_value();
-                    if a == b {
-                        self.push_value(num("1"));
-                    } else {
-                        self.push_value(num("0"));
-                    }
-                },
+            Instruction::Pop => {
+                let mut list = self.pop_value();
+                let value = list.list_pop();
+                self.push_value(value);
+            },
+            
+            Instruction::Index => {
+                let mut list = self.pop_value();
+                let index = self.pop_value();
+                self.push_value(list.index(index));
+            },
 
-                // > the topmost objects
-                Instruction::Greater => {
-                    let a = self.pop_value();
-                    let b = self.pop_value();
-                    if a.as_number() > b.as_number() {
-                        self.push_value(num("1"));
-                    } else {
-                        self.push_value(num("0"));
-                    }
-                },
-                
-                // < the topmost objects
-                Instruction::Less => {
-                    let a = self.pop_value();
-                    let b = self.pop_value();
-                    if a.as_number() < b.as_number() {
-                        self.push_value(num("1"));
-                    } else {
-                        self.push_value(num("0"));
-                    }
-                },
-                
+            // == the topmost objects
+            Instruction::Equal => {
+                let a = self.pop_value();
+                let b = self.pop_value();
+                if a == b {
+                    self.push_value(num("1"));
+                } else {
+                    self.push_value(num("0"));
+                }
+            },
 
-                // not the topmost object
-                Instruction::Not => {
-                    let a = self.pop_value();
-                    self.push_value(!a);
-                },
+            // > the topmost objects
+            Instruction::Greater => {
+                let a = self.pop_value();
+                let b = self.pop_value();
+                if a.as_number() > b.as_number() {
+                    self.push_value(num("1"));
+                } else {
+                    self.push_value(num("0"));
+                }
+            },
+            
+            // < the topmost objects
+            Instruction::Less => {
+                let a = self.pop_value();
+                let b = self.pop_value();
+                if a.as_number() < b.as_number() {
+                    self.push_value(num("1"));
+                } else {
+                    self.push_value(num("0"));
+                }
+            },
+            
 
-                // add the topmost objects
-                Instruction::Add => {
-                    let a = self.pop_value();
-                    let b = self.pop_value();
-                    self.push_value(a + b);
-                },
+            // not the topmost object
+            Instruction::Not => {
+                let a = self.pop_value();
+                self.push_value(!a);
+            },
 
-                // multiply the topmost objects
-                Instruction::Mul => {
-                    let a = self.pop_value();
-                    let b = self.pop_value();
-                    self.push_value(a * b);
-                },
-                
-                // subtract the topmost objects
-                Instruction::Sub => {
-                    let a = self.pop_value();
-                    let b = self.pop_value();
-                    self.push_value(a - b);
-                },
-                
-                // divide the topmost objects
-                Instruction::Div => {
-                    let a = self.pop_value();
-                    let b = self.pop_value();
-                    self.push_value(a / b);
-                },
+            // add the topmost objects
+            Instruction::Add => {
+                let a = self.pop_value();
+                let b = self.pop_value();
+                self.push_value(a + b);
+            },
 
-                // apply the % operator to the topmost objects
-                Instruction::Mod => {
-                    let a = self.pop_value();
-                    let b = self.pop_value();
-                    self.push_value(a % b);
-                },
-                
-                // call the topmost object on the stack as a function
-                Instruction::Call => {
-                    let f = self.pop();
-                    self.call(f);
-                },
+            // multiply the topmost objects
+            Instruction::Mul => {
+                let a = self.pop_value();
+                let b = self.pop_value();
+                self.push_value(a * b);
+            },
+            
+            // subtract the topmost objects
+            Instruction::Sub => {
+                let a = self.pop_value();
+                let b = self.pop_value();
+                self.push_value(a - b);
+            },
+            
+            // divide the topmost objects
+            Instruction::Div => {
+                let a = self.pop_value();
+                let b = self.pop_value();
+                self.push_value(a / b);
+            },
 
-                // load a variable with a given name
-                Instruction::Load => {
-                    let name = self.pop_value().as_string();
-                    let value = self.load(name);
-                    self.push(value);
-                },
+            // apply the % operator to the topmost objects
+            Instruction::Mod => {
+                let a = self.pop_value();
+                let b = self.pop_value();
+                self.push_value(a % b);
+            },
+            
+            // call the topmost object on the stack as a function
+            Instruction::Call => {
+                let f = self.pop();
+                self.call(f);
+            },
 
-                // store takes a name and a value
-                // and stores the value under that name
-                // as a variable that can be loaded
-                Instruction::Store => {
-                    let name = self.pop_value().as_string();
-                    let value = self.pop();
-                    self.store(name, value);
-                },
+            // load a variable with a given name
+            Instruction::Load => {
+                let name = self.pop_value().as_string();
+                let value = self.load(name);
+                self.push(value);
+            },
 
-                // getattr retreives an attribute of an object
-                Instruction::GetAttr => {
-                    let name = self.pop_value().as_string();
-                    let object = self.pop_value();
-                    self.push_value(object.get_attr(name));
-                },
+            // store takes a name and a value
+            // and stores the value under that name
+            // as a variable that can be loaded
+            Instruction::Store => {
+                let name = self.pop_value().as_string();
+                let value = self.pop();
+                self.store(name, value);
+            },
 
-                // setattr modifies an attribute of an object
-                Instruction::SetAttr => {
-                    let name = self.pop_value().as_string();
-                    let data = self.pop_value();
-                    let mut object = self.pop_value();
-                    object.set_attr(name, data);
-                    self.push_value(object);
-                },
+            // getattr retreives an attribute of an object
+            Instruction::GetAttr => {
+                let name = self.pop_value().as_string();
+                let object = self.pop_value();
+                self.push_value(object.get_attr(name));
+            },
 
-                // execute takes the topmost object on the stack
-                // and executes it as a foreign function
-                // a foreign function takes a Value and returns
-                // a Value
-                Instruction::Execute => {
-                    let mut foreign_function = self.pop_value();
-                    let argument = self.pop_value();
-                    self.push_value(
-                        foreign_function.call_foreign_function(argument)
-                        );
-                },
+            // setattr modifies an attribute of an object
+            Instruction::SetAttr => {
+                let name = self.pop_value().as_string();
+                let data = self.pop_value();
+                let mut object = self.pop_value();
+                object.set_attr(name, data);
+                self.push_value(object);
+            },
 
-                // pass does nothing
-                Instruction::Pass => self.push_value(instruction)
-            }
+            // execute takes the topmost object on the stack
+            // and executes it as a foreign function
+            // a foreign function takes a Value and returns
+            // a Value
+            Instruction::Execute => {
+                let mut foreign_function = self.pop_value();
+                let argument = self.pop_value();
+                self.push_value(
+                    foreign_function.call_foreign_function(argument)
+                    );
+            },
+
+            // pass does nothing
+            Instruction::Pass => self.push_value(instruction)
         }
     }
 
@@ -274,49 +283,20 @@ impl StackFrame {
     }
 
     fn while_function(&mut self, condition: Value, body: Value) {
-        // create a new stackframe
-
-        let mut exec = StackFrame::new(
-            Some(Box::new(self.clone())),
-            self.scope.clone(),
-            body.clone()
-        );
-
-        let mut test = StackFrame::new(
-            Some(Box::new(self.clone())),
-            self.scope.clone(),
-            condition.clone()
-        );
-
-        let mut result : Value;
-
         loop {
-            test.run();
-            result = test.pop_value();
+            for instruction in condition.as_list() {
+                self.step(instruction)
+            }
+
+            let result = self.pop_value(); 
             if result == num("0") || result == none() {
                 break;
             }
 
-            exec = StackFrame::new(
-                Some(Box::new(self.clone())),
-                test.scope.clone(),
-                body.clone()
-            );
-
-            exec.run();
-            test = StackFrame::new(
-                Some(Box::new(self.clone())),
-                exec.scope.clone(),
-                condition.clone()
-            );
+            for instruction in body.as_list() {
+                self.step(instruction)
+            }
         }
-
-        self.scope = exec.scope.clone();
-        self.contents = exec.contents.clone();
-        self.outer_stack = exec.outer_stack.clone();
-        self.instructions = exec.instructions.clone();
-        self.number_of_args_taken = exec.number_of_args_taken.clone();
-
     }
 
     // this function calls the topmost object on the stack as function
@@ -365,10 +345,15 @@ impl StackFrame {
 
     // store a value under the given variable name
     fn store(&mut self, name: String, object: Pair<Value, Scope>) {
-        match object.first.get_type() {
-            Type::Function => self.scope.define(name, object),
-            _ => self.scope.define(name, Pair{first: object.first, second: Scope::new(None)}),
+        if object.second != self.scope {
+            self.scope.define(name, object);
+        } else {
+            self.scope.define(name, Pair{first: object.first, second: Scope::new(None)});
         }
+        // match object.first.get_type() {
+        //     Type::Function => self.scope.define(name, object),
+        //     _ => self.scope.define(name, Pair{first: object.first, second: Scope::new(None)}),
+        // }
     }
 
     // push an object with its saved scope onto the stack
