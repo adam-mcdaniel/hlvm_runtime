@@ -110,9 +110,11 @@ impl StackFrame {
             },
 
             Instruction::If => {
+                // println!("{:#?}", self.contents);
                 let c = self.pop_value();
                 let a = self.pop();
                 let b = self.pop();
+                // println!("{} {} {}", c, a.first, b.first);
                 if c != num("0") && c != none() {
                     self.push(a);
                 } else {
@@ -313,6 +315,7 @@ impl StackFrame {
 
         // pop off all of the arguments given to the function called
         for _ in 0..s.number_of_args_taken {
+            // println!("popped arg {:?}", self.pop().first);
             self.pop();
         }
 
@@ -358,13 +361,13 @@ impl StackFrame {
 
     // push an object with its saved scope onto the stack
     fn push(&mut self, object_and_scope: Pair<Value, Scope>) {
-        self.number_of_args_taken += 1;
+        // self.number_of_args_taken += 1;
         self.contents.push(object_and_scope);
     }
 
     // push an object without a scope onto the stack (used for literals)
     fn push_value(&mut self, object: Value) {
-        self.number_of_args_taken += 1;
+        // self.number_of_args_taken += 1;
         self.contents.push(Pair {
             first: object,
             second: self.scope.clone()
