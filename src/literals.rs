@@ -35,7 +35,8 @@ use crate::object::*;
 }
 
 #[allow(unused_macros)]
-#[macro_export] macro_rules! obj {
+#[macro_export]
+macro_rules! obj {
     ($($name:meta~$value:expr),+) => (
         (|| {
             let mut value = Value::new(Type::Instance, NOTHING.to_vec());
@@ -45,6 +46,10 @@ use crate::object::*;
             return value
         })()
     )
+}
+
+pub fn empty_obj() -> Value {
+    Value::new(Type::Instance, NOTHING.to_vec())
 }
 
 pub fn string(s: &str) -> Value {

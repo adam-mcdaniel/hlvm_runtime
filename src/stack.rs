@@ -240,18 +240,41 @@ impl StackFrame {
 
             // getattr retreives an attribute of an object
             Instruction::GetAttr => {
-                let name = self.pop_value().as_string();
-                let object = self.pop_value();
-                self.push_value(object.get_attr(name));
+                // println!("get attr");
+                let mut names: Vec<String> = vec![];
+                // println!("contents {:?}", self.contents.len());
+                while self.contents.last().unwrap().first.get_type() != Type::Instance {
+                // while self.contents.len() > 1 {
+                    names.push(
+                        self.pop_value().as_string()
+                        );
+                }
+                names.reverse();
+
+                // println!("names {:?}", names);
+                let mut object = self.pop_value();
+
+                self.push_value(object.get_attr_recursive(names));
             },
 
             // setattr modifies an attribute of an object
             Instruction::SetAttr => {
-                let name = self.pop_value().as_string();
-                let data = self.pop_value();
+                // println!("set attr");
+                let mut names: Vec<String> = vec![];
+                // println!("contents {:?}", self.contents.len());
+                while self.contents.last().unwrap().first.get_type() != Type::Instance {
+                    names.push(
+                        self.pop_value().as_string()
+                        );
+                }
+                names.reverse();
+
+                // println!("names {:?}", names);
                 let mut object = self.pop_value();
-                object.set_attr(name, data);
-                self.push_value(object);
+                let data = self.pop_value();
+
+
+                self.push_value(object.set_attr_recursive(names, data));
             },
 
             // execute takes the topmost object on the stack

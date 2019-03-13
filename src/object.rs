@@ -87,6 +87,10 @@ pub trait Object: Sized + Clone + Debug + Display + Add + Sub + Mul + Div + Rem 
     // initializers
     fn new(value_type: Type, contents: Contents) -> Self;
 
+    fn empty_instance() -> Self {
+        return Self::new(Type::Instance, NOTHING.to_vec());
+    }
+
     fn from_string(string: String) -> Self {
         return Self::new(Type::Str, from_string(string));
     }
@@ -214,6 +218,50 @@ pub trait Object: Sized + Clone + Debug + Display + Add + Sub + Mul + Div + Rem 
         self.set_attributes(table);
     }
 
+    fn get_attr_recursive(&mut self, names: Vec<String>) -> Self {
+        let name = &names[0];
+        let table = self.get_attributes();
+        if names.len() == 1 {
+
+            match table.get(name.to_string()) {
+                Some(o) => o,
+                None => Self::from_nothing()
+            }
+
+        } else {
+
+            match table.get(name.to_string()) {
+                Some(o) => o,
+                None => Self::empty_instance()
+            }.get_attr_recursive(names[1..].to_vec())
+        }
+    }
+
+    fn set_attr_recursive(&mut self, names: Vec<String>, object: Self) -> Self {
+        let name = &names[0];
+        let mut table = self.get_attributes();
+
+        if names.len() == 1 {
+
+            table.set(name.to_string(), object);
+            self.set_attributes(table);
+
+        } else {
+
+            table.set(
+                name.to_string(),
+                match table.get(name.to_string()) {
+                    Some(o) => o,
+                    None => Self::empty_instance()
+                }
+                    .set_attr_recursive(names[1..].to_vec(), object));
+            self.set_attributes(table);
+
+        }
+
+        self.clone()
+    }
+
 
     fn index(&mut self, index: Self) -> Self {
         let my_type = self.get_type();
@@ -274,17 +322,22 @@ pub trait Object: Sized + Clone + Debug + Display + Add + Sub + Mul + Div + Rem 
                 result + "]"
                 },
             Type::Instance => {
-                // format!("{:?}", self.as_instance())
-                let mut result = "<".to_string();
-                for key in self.get_attributes().keys() {
-                    result += &key;
-                    result += ":";
-                    result += &self.get_attr(key).format();
-                    result += ", ";
+
+                if self.get_attributes().keys().len() < 1 {
+                    "<>".to_string()
+                } else {
+                    let mut result = "<".to_string();
+                    for key in self.get_attributes().keys() {
+                        result += &key;
+                        result += ":";
+                        result += &self.get_attr(key).format();
+                        result += ", ";
+                    }
+                    result.pop();
+                    result.pop();
+                    result + ">"
                 }
-                result.pop();
-                result.pop();
-                result + ">"
+
             },
             Type::Function => format!("Function"),
             Type::Nothing => format!("None"),
