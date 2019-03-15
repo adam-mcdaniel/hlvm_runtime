@@ -1,3 +1,4 @@
+use crate::error::*;
 use crate::object::*;
 use crate::value::*;
 use crate::literals::*;
@@ -243,15 +244,37 @@ impl StackFrame {
                 // println!("get attr");
                 let mut names: Vec<String> = vec![];
                 // println!("contents {:?}", self.contents.len());
-                while self.contents.last().unwrap().first.get_type() != Type::Instance {
-                // while self.contents.len() > 1 {
+                loop {
+
+                    if !self.contents.iter().any(|v| v.first.get_type() == Type::Instance) {
+                        throw("No instance to set attribute of", self.contents.clone());
+                    }
+
+                    let back = match self.contents.last() {
+                        Some(k) => k.first.clone(),
+                        None => {
+                            throw("Could not get back item from stack", self.contents.clone());
+                            Value::from_nothing()
+                        }
+                    };
+
+                    if back.get_type() == Type::Instance {
+                        break;
+                    }
+
                     names.push(
                         self.pop_value().as_string()
                         );
+                    
+                    if self.contents.len() < 1 {
+                        throw("Too few items on stack to set attribute", self.contents.clone());
+                    }
+                }
+                if names.len() < 1 {
+                    throw("Could not set attribute of object without the attribute name", self.contents.clone());
                 }
                 names.reverse();
 
-                // println!("names {:?}", names);
                 let mut object = self.pop_value();
 
                 self.push_value(object.get_attr_recursive(names));
@@ -262,14 +285,37 @@ impl StackFrame {
                 // println!("set attr");
                 let mut names: Vec<String> = vec![];
                 // println!("contents {:?}", self.contents.len());
-                while self.contents.last().unwrap().first.get_type() != Type::Instance {
+                loop {
+                    if !self.contents.iter().any(|v| v.first.get_type() == Type::Instance) {
+                        throw("No instance to set attribute of", self.contents.clone());
+                    }
+
+                    let back = match self.contents.last() {
+                        Some(k) => k.first.clone(),
+                        None => {
+                            throw("Could not get back item from stack", self.contents.clone());
+                            Value::from_nothing()
+                        }
+                    };
+
+                    if back.get_type() == Type::Instance {
+                        break;
+                    }
+
                     names.push(
                         self.pop_value().as_string()
                         );
+                    
+                    if self.contents.len() < 2 {
+                        throw("Too few items on stack to set attribute", self.contents.clone());
+                    }
                 }
+                if names.len() < 1 {
+                    throw("Could not set attribute of object without the attribute name", self.contents.clone());
+                }
+
                 names.reverse();
 
-                // println!("names {:?}", names);
                 let mut object = self.pop_value();
                 let data = self.pop_value();
 
@@ -405,13 +451,19 @@ impl StackFrame {
                     self.number_of_args_taken += 1;
                     s.pop()
                 },
-                None => return Pair{first: Value::from_nothing(), second: Scope::new(None)}
+                None => {
+                    throw("Could not pop off of stack", self.contents.clone());
+                    return Pair{first: Value::from_nothing(), second: Scope::new(None)}
+                }
             }
         } else {
 
             let back: Pair<Value, Scope> = match self.contents.last() {
                 Some(v) => v.clone(),
-                None => return Pair{first: Value::from_nothing(), second: Scope::new(None)}
+                None => {
+                    throw("Could not pop off of stack", self.contents.clone());
+                    Pair{first: Value::from_nothing(), second: Scope::new(None)}
+                }
             };
             
             self.contents.pop();
@@ -427,12 +479,18 @@ impl StackFrame {
                     self.number_of_args_taken += 1;
                     s.pop().first
                 },
-                None => return Value::from_nothing()
+                None => {
+                    throw("Could not pop off of stack", self.contents.clone());
+                    return Value::from_nothing();
+                }
             }
         } else {
             let back: Value = match self.contents.last() {
                 Some(v) => v.first.clone(),
-                None => Value::from_nothing()
+                None => {
+                    throw("Could not pop off of stack", self.contents.clone());
+                    Value::from_nothing()
+                }
             };
             
             self.contents.pop();

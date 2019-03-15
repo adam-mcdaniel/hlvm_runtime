@@ -2,7 +2,8 @@ use std::fmt::{Debug, Display};
 use std::str::FromStr;
 use std::ops::{Add, Sub, Mul, Div, Rem, Not};
 
-use bigdecimal::*;
+use crate::error::*;
+pub use bigdecimal::*;
 use crate::table::Table;
 
 pub type Contents = Vec<BigDecimal>;
@@ -168,13 +169,21 @@ pub trait Object: Sized + Clone + Debug + Display + Add + Sub + Mul + Div + Rem 
     }
 
     fn as_number(&self) -> BigDecimal {
-        self.get_contents()[0].clone()
+        if self.get_contents().len() > 0 {
+            self.get_contents()[0].clone()
+        } else {
+            BigDecimal::from_str("0").unwrap()
+        }
     }
 
     fn as_usize(&self) -> usize {
-        match self.get_contents()[0].to_i32() {
-            Some(i) => i as usize,
-            None => 0 as usize
+        if self.get_contents().len() > 0 {
+            match self.get_contents()[0].to_i32() {
+                Some(i) => i as usize,
+                None => 0 as usize
+            }
+        } else {
+            0 as usize
         }
     }
 
@@ -219,6 +228,10 @@ pub trait Object: Sized + Clone + Debug + Display + Add + Sub + Mul + Div + Rem 
     }
 
     fn get_attr_recursive(&mut self, names: Vec<String>) -> Self {
+        if names.len() < 1 {
+            throw_no_stack("Could not set attribute of object without the attribute name");
+        }
+
         let name = &names[0];
         let table = self.get_attributes();
         if names.len() == 1 {
@@ -238,6 +251,10 @@ pub trait Object: Sized + Clone + Debug + Display + Add + Sub + Mul + Div + Rem 
     }
 
     fn set_attr_recursive(&mut self, names: Vec<String>, object: Self) -> Self {
+        if names.len() < 1 {
+            throw_no_stack("Could not set attribute of object without the attribute name");
+        }
+
         let name = &names[0];
         let mut table = self.get_attributes();
 
@@ -258,7 +275,6 @@ pub trait Object: Sized + Clone + Debug + Display + Add + Sub + Mul + Div + Rem 
             self.set_attributes(table);
 
         }
-
         self.clone()
     }
 
