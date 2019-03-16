@@ -1,8 +1,9 @@
+
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 use std::ops::{Add, Sub, Mul, Div, Rem, Not};
 
-use crate::number::*;
+use crate::number::Number;
 use crate::error::*;
 use crate::table::Table;
 
