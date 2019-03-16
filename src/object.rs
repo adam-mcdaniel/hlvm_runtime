@@ -2,19 +2,16 @@ use std::fmt::{Debug, Display};
 use std::str::FromStr;
 use std::ops::{Add, Sub, Mul, Div, Rem, Not};
 
+use crate::number::*;
 use crate::error::*;
-pub use bigdecimal::*;
 use crate::table::Table;
 
-pub type Contents = Vec<BigDecimal>;
-pub const NOTHING : &[BigDecimal] = &[];
+pub type Contents = Vec<Number>;
+pub const NOTHING : &[Number] = &[];
 
 
-fn to_decimal(num: f64) -> BigDecimal {
-    match BigDecimal::from_str(&num.to_string()) {
-        Ok(v) => v,
-        Err(_) => BigDecimal::from_str("0").unwrap()
-    }
+fn float64_to_number(num: f64) -> Number {
+    Number::from_str(&num.to_string())
 }
 
 
@@ -22,18 +19,29 @@ fn from_string(string: String) -> Contents {
     let mut result = vec![];
     for ch in string.chars() {
         result.push(
-            match BigDecimal::from_str(&(ch as i32).to_string()) {
-                Ok(s) => s,
-                Err(_) => return NOTHING.to_vec()
-            }
+            Number::from_str(&(ch as i32).to_string())
         );
     }
     return result;
 }
 
 
-fn from_number(number: BigDecimal) -> Contents {
+fn from_number(number: Number) -> Contents {
     return vec![number];
+}
+
+
+pub fn string_to_number(n: String) -> Number {
+    // println!("String to num");
+    // match Number::from_str(&n) {
+    //     Ok(s) => s,
+    //     Err(_) => return Number::from_str("0").unwrap()
+    // }
+    // match n.parse::<f64>() {
+    //     Ok(n) => n,
+    //     Err(_) => 0 as f64
+    // }
+    Number::from_str(&n)
 }
 
 
@@ -84,7 +92,7 @@ pub enum Type {
 }
 
 
-pub trait Object: Sized + Clone + Debug + Display + Add + Sub + Mul + Div + Rem + Not {
+pub trait Object: Sized + Clone + Debug + Display + Add + Sub + Mul + Div + Rem + Ord + Not {
     // initializers
     fn new(value_type: Type, contents: Contents) -> Self;
 
@@ -101,11 +109,11 @@ pub trait Object: Sized + Clone + Debug + Display + Add + Sub + Mul + Div + Rem 
     }
 
     fn from_f64(decimal: f64) -> Self {
-        return Self::new(Type::Num, from_number(to_decimal(decimal)));
+        return Self::new(Type::Num, from_number(float64_to_number(decimal)));
     }
 
-    fn from_number(decimal: BigDecimal) -> Self {
-        return Self::new(Type::Num, from_number(decimal));
+    fn from_number(n: Number) -> Self {
+        return Self::new(Type::Num, from_number(n));
     }
 
     fn from_instruction(instruction: Instruction) -> Self {
@@ -168,20 +176,22 @@ pub trait Object: Sized + Clone + Debug + Display + Add + Sub + Mul + Div + Rem 
         return attr;
     }
 
-    fn as_number(&self) -> BigDecimal {
+    fn as_number(&self) -> Number {
         if self.get_contents().len() > 0 {
             self.get_contents()[0].clone()
         } else {
-            BigDecimal::from_str("0").unwrap()
+            // Number::from_str("0").unwrap()
+            string_to_number("0".to_string())
         }
     }
 
     fn as_usize(&self) -> usize {
         if self.get_contents().len() > 0 {
-            match self.get_contents()[0].to_i32() {
-                Some(i) => i as usize,
-                None => 0 as usize
-            }
+            // match self.get_contents()[0].to_i32() {
+            //     Some(i) => i as usize,
+            //     None => 0 as usize
+            // }
+            self.get_contents()[0].to_usize()
         } else {
             0 as usize
         }
@@ -191,10 +201,11 @@ pub trait Object: Sized + Clone + Debug + Display + Add + Sub + Mul + Div + Rem 
         let mut result = "".to_string();
 
         for ch in self.get_contents() {
-            let character = match ch.to_i32() {
-                Some(i) => i as u8 as char,
-                None => ' '
-            };
+            // let character = match ch.to_i32() {
+            //     Some(i) => i as u8 as char,
+            //     None => ' '
+            // };
+            let character = ch.to_char();
             result += &character.to_string();
         }
         return result.to_string();

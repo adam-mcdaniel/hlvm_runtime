@@ -1,6 +1,7 @@
 use std::fmt::{Display};
 #[allow(unused_imports)]
 use std::str::FromStr;
+use std::cmp::Ordering;
 use std::ops::{Add, Sub, Mul, Div, Rem, Not};
 
 use crate::table::*;
@@ -20,6 +21,20 @@ impl Display for Value {
     fn fmt(&self, _fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         self.print();
         Ok(())
+    }
+}
+
+impl Eq for Value {}
+
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Value {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.as_number().cmp(&other.as_number())
     }
 }
 

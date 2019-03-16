@@ -1,4 +1,3 @@
-use bigdecimal::*;
 #[allow(unused_imports)]
 use std::str::FromStr;
 use crate::value::*;
@@ -57,7 +56,7 @@ pub fn string(s: &str) -> Value {
 }
 
 pub fn num(n: &str) -> Value {
-    Value::from_number(BigDecimal::from_str(n).unwrap())
+    Value::from_number(string_to_number(n.to_string()))
 }
 
 pub fn none() -> Value {
