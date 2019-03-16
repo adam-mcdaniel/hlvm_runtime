@@ -123,6 +123,16 @@ impl StackFrame {
                 }
             },
 
+            Instruction::ListFromStack => {
+                let mut l = list(&[]);
+
+                for _ in 0..self.contents.len() {
+                    l.list_push(self.pop_value());
+                }
+
+                self.push_value(l);
+            },
+
             Instruction::Append => {
                 let mut list = self.pop_value();
                 let value = self.pop_value();

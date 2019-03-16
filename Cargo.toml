@@ -1,6 +1,6 @@
 [package]
 name = "hlvm_runtime"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["adam"]
 edition = "2018"
 license = "MIT"

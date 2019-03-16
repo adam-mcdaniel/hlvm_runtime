@@ -52,6 +52,7 @@ pub enum Instruction {
     Println,
     While,
     If,
+    ListFromStack,
     Append,
     Pop,
     Index,
