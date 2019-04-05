@@ -84,6 +84,10 @@ impl StackFrame {
         }
     }
 
+    pub fn return_value(&mut self) -> Value {
+        self.pop_value()
+    }
+
     // run a stackframe
     pub fn run(&mut self) {
         // println!("stack {:?}", match self.outer_stack.clone().contents{

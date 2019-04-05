@@ -90,6 +90,10 @@ impl Number {
         Self {number}
     }
 
+    pub fn to_i32(&self) -> i32 {
+        backend_number_to_i32(&self.number)
+    }
+
     pub fn to_usize(&self) -> usize {
         backend_number_to_usize(&self.number)
     }
